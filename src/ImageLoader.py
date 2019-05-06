@@ -24,7 +24,7 @@ def displayAllImages(allImg): # dictionary of {"imgName" : imgAsNpArray,...}
     for name in allImg:
         showNpArrayAsImage(name, allImg[name])
    
-class ImgStorage:
+class ImgStorage: # i.e.: storage =  ImgStorage("../datas/train/")
     def __init__(self, basePath):
         self.localMap = getAllImages(basePath)
         self.localList = [(name, self.localMap[name]) for name in self.localMap]
