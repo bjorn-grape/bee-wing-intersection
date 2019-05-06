@@ -1,6 +1,6 @@
-#! /bin/python
+#! /bin/python3
 
-from PIL import Image
+import cv2
 from os import listdir
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
  
 
 def openPathToNpArray(path):
-    return np.array(Image.open(path))
+    return np.array(cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB))
 
 def getAllImages(basePath):
     trainFiles = listdir(basePath)
