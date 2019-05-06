@@ -1,0 +1,58 @@
+image: python:latest
+before_script:
+  - pip install -r requirements.txt
+
+variables:
+  ARTIFACTS: "master_${CI_COMMIT_SHA}"
+  OUTPUT_NAME: "abeille_cool_${CI_COMMIT_SHORT_SHA}"
+
+stages:
+  - test
+  - generate
+  - deploy
+
+test:score:
+  stage: test
+  script:
+    - make score
+
+generate:images:
+  stage: generate
+  script:
+    - make images
+  only:
+    refs:
+      - master
+  artifacts:
+    paths:
+      - "${ARTIFACTS}"
+
+generate:notebook:
+  stage: generate
+  before_script:
+    - pip install -r requirements.txt
+    - pip install py2nb jupyter
+  script:
+    - make notebook
+  artifacts:
+    paths:
+      - "${OUTPUT_NAME}.ipynb"
+
+deploy:html:
+  stage: deploy
+  dependencies:
+    - generate:notebook
+  before_script:
+    - pip install -r requirements.txt
+    - pip install jupyter
+  script:
+    - make html
+  after_script:
+    - mkdir public
+    - mv index.html public/
+  only:
+    refs:
+      - master
+  artifacts:
+    paths:
+      - public/
