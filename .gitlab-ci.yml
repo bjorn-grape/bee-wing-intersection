@@ -44,7 +44,7 @@ deploy:html:
     - generate:notebook
   before_script:
     - pip install -r requirements.txt
-    - pip install jupyter
+    - pip install py2nb jupyter
   script:
     - make html
   after_script:
