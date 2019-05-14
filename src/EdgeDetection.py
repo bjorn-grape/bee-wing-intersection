@@ -5,24 +5,17 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+from queue import *
 
-def apply_median_kernel(array2d, kernelsize):
-    resarray = np.full(array2d.shape, -1)
-    height = len(array2d)
-    width = len(array2d[0])
-    kern_div_2 = kernelsize / 2.0
-    for i in range(height):
-        for j in range(width):
-            mini = int(max(i - kern_div_2, 0))
-            maxi = int(min(i + kern_div_2, height))
-            minj = int(max(j - kern_div_2, 0))
-            maxj = int(min(j + kern_div_2, width))
-            subarr = np.array(array2d[mini:maxi, minj:maxj]).flatten()
-            subarr = np.sort(subarr)
-            mid = int(len(subarr) / 2.0)
-            median = subarr[mid]
-            resarray[i,j] = median
-    return resarray
+
+
+def kernell(i):
+    return np.ones((i,i),np.uint8)
+
+def differenceOfGaussian(img, kernSize1, kernSize2):
+    g1 = cv2.blur(img, (kernSize1, kernSize1))
+    g2 = cv2.blur(img, (kernSize2, kernSize2))
+    return g1 - g2;
 
 def detectEdges1(image):
     imgBlurredL = cv2.blur(image, (9, 9))
@@ -48,7 +41,7 @@ def detectEdges2(image):
 
     im = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
     l,a,b = cv2.split(im)
-    im = cv2.bilateralFilter(l, 13, 50, 75)
+    im = cv2.bilateralFilter(l, 10, 50, 75)
     kernel = np.ones((2,2),np.uint8)
     kernel2 = np.ones((7,7),np.uint8)
     im = cv2.erode(im,kernel,iterations = 1)
@@ -65,7 +58,7 @@ def detectEdges2(image):
 
     #im = cv2.bilateralFilter(im, (4, 4))
     im = cv2.dilate(im,kernel2,iterations = 1)
-    im = cv2.erode(im,kernel,iterations = 2)
+    im = cv2.erode(im,kernel,iterations = 1)
     #im = cv2.medianBlur(im, 5)
 
 
@@ -80,34 +73,101 @@ def detectEdges2(image):
 
     return im
 
+def getColorForValue(val, maxval):
+    hue = val * 255 // maxval
+    saturation = 255
+    value = 255
+    return np.array([hue,saturation,value])
+    
+
+def giveValueBy8Connexity(img):
+    height, width = img.shape
+    res = np.full((height, width), 0)
+    q = Queue()
+    height, width = img.shape
+    current_color = 1
+    for i in range(height):
+        for j in range(width):
+            while not q.empty():
+                coordx, coordy = q.get()
+                minx = max(0,(coordx - 1))
+                maxx = min(height,(coordx + 2))
+                miny = max(0,(coordy - 1))
+                maxy = min(width,(coordy + 2))
+                for k in  range(minx,maxx):
+                    for l in range(miny,maxy):
+                        #print(str(k)+","+ str(l) + "| img[k,l] != 0 -> "+str(img[k,l] != 0) +" |  res[k,l] == 0 -> " +str( res[k,l] == 0)  )
+                        if img[k,l] != 0 and res[k,l] == 0:
+                            res[k,l] = img[coordx,coordy]
+                            #print("In: putting " +str(k)+","+ str(l))
+                            q.put((k,l))
+            if img[i,j] != 0 and res[i,j] == 0:
+                res[i,j] = current_color
+                #print("color: " + str(current_color))
+                current_color += 1
+                
+                q.put((i,j))      
+                #print("Out: putting " +str(i)+","+ str(j))
+            
+    return res
 
 def detectEdges3(image):
-    #imgBlurredL = cv2.blur(image, (9, 9))
-    imgLab = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
-    l,a,b = cv2.split(imgLab)
-    ret, thresh = cv2.threshold(l,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-    kernel = np.ones((3,3),np.uint8)
-    erosion = cv2.dilate(thresh,kernel,iterations = 1)
-    dilate = cv2.erode(erosion,kernel,iterations = 1)
+    
+    im = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
+    l,a,b = cv2.split(im)
+    im = l
+    im = cv2.bilateralFilter(im, 10, 50, 75)
+    im = cv2.erode(im,kernell(2),iterations = 1)
+    #im = cv2.blur(im, (7,7))
+   
+    ret, thresh = cv2.threshold(im,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+    
+    im = thresh
+    im = cv2.erode(im,kernell(2),iterations = 2)
 
-    return dilate
+    im = cv2.dilate(im,kernell(2),iterations = 4)
+    #im = cv2.erode(im,kernell(2),iterations = 1)
 
-    #imgBlurredL = cv2.blur(l, (11, 11))
-    #kernel = np.array([[1, 1, 1],
-    #                  [1, -6, 1],
-   #                   [1, 1, 1]])
-   # dst = cv2.filter2D(imgBlurredL, -1, kernel)
-   # ret3,th3 = cv2.threshold(dst,0,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C+cv2.THRESH_OTSU)
-    #return th3
+    return im
      
+def detectEdges4(image):
+    im = image
+    im = cv2.cvtColor(im, cv2.COLOR_RGB2LAB)
+    #im = cv2.fastNlMeansDenoisingColored(im,None,7,7,25,12)
+    
+    l,a,b = cv2.split(im)
+    im = l
+    im = differenceOfGaussian(im, 25, 30)
+    im = cv2.bilateralFilter(im, 10, 50, 75)
+
+    im = cv2.erode(im,kernell(3),iterations = 1)
+   
+  #  ret, thresh = cv2.threshold(im,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+    
+   # im = thresh
+
+    im = cv2.dilate(im,kernell(2),iterations = 1)
+    im = cv2.medianBlur(im, 3)
+    im = cv2.medianBlur(im, 3)
+    im = cv2.medianBlur(im, 3)
+    im = cv2.medianBlur(im, 3)
+    im = cv2.dilate(im,kernell(3),iterations = 2)
+    im = cv2.medianBlur(im, 3)
+    im = cv2.medianBlur(im, 3)
+
+
+
+   # im = cv2.erode(im,kernell(7),iterations = 2)
+
+    return im
     
 def allPlot(): # try me
     storage = IL.ImgStorage("../datas/train/")
     imgNB = storage.size() // 3
-    fig, axes = plt.subplots(imgNB, 2, figsize=(8, 30))
+    fig, axes = plt.subplots(imgNB, 2, figsize=(20, 80))
     for i in range(imgNB):
         img = storage.getImgByIndex(i)
-        res = detectEdges2(img)
+        res = detectEdges4(img)
         axes[i, 0].imshow(img)
         axes[i, 1].imshow(res)
     plt.show()
@@ -116,9 +176,82 @@ def allPlot(): # try me
     
 def applyForOne():
     storage = IL.ImgStorage("../datas/train/")
-    img = storage.getImgByIndex(8);
-    plop = detectEdges2(img)
-    plt.imshow(plop)
+    img = storage.getImgByIndex(0);
+    res = detectEdges4(img)
+    plt.imshow(res)
+    
+def testy():
+    storage = IL.ImgStorage("../datas/train/")
+    img = storage.getImgByIndex(0);
+    res = img
+    res = cleanWingImg(res)
+    #res = detectEdges4(res)
+    #res = res[72:83,73:85]
+
+    #res = giveValueBy8Connexity(res)
+    #return  res
+    plt.imshow(res)
     
 #applyForOne()
-allPlot()
+#allPlot()
+#print(testy())
+
+def colorize(img):
+    maxi = np.max(img) + 1
+    height, width = img.shape
+    res = np.full((height, width, 3), 0)
+
+    for i in range(height):
+        for j in range(width):
+            color = getColorForValue(img[i,j], maxi)
+            for k in range(3):
+                res[i,j,k] = color[k]
+    #res = cv2.cvtColor(res , cv2.COLOR_HSV2RGB)
+    return res
+
+def histogram(img):
+    maxi = int(np.max(img) + 1)
+    img = img.flatten()
+    res = np.full((maxi), 0)
+    for i in range(len(img)):
+        res[int(img[i])] += 1
+    return res
+        
+def getComplement(img):
+    height,width = img.shape
+    res = np.full((height, width), 0)
+    res = np.array(res, dtype=np.int32)
+    histi = histogram(img)
+    mean = np.mean(histi) * 2
+    for i in range(height):
+        for j in range(width):
+            valuee = img[i,j]
+            if  histi[valuee] < mean:
+                res[i,j]  = 255
+            else:
+                res[i,j]  = 0
+    return res
+
+
+def give_components(img):
+    ret, labels = cv2.connectedComponents(img)
+    # Map component labels to hue val
+    label_hue = np.uint8(179*labels/np.max(labels))
+    blank_ch = 255*np.ones_like(label_hue)
+    labeled_img = cv2.merge([label_hue, blank_ch, blank_ch])
+
+    # cvt to BGR for display
+    labeled_img = cv2.cvtColor(labeled_img, cv2.COLOR_HSV2BGR)
+
+    # set bg label to black
+    labeled_img[label_hue==0] = 0
+
+    return labeled_img
+
+def cleanWingImg(img):
+    img1 = detectEdges4(img)
+    q, img2 = cv2.threshold(img1,127, 255,cv2.THRESH_BINARY)
+    _, labels = cv2.connectedComponents(img2)
+    cppm = getComplement(labels)
+    img3 = np.subtract(img2,cppm)
+    return img3
