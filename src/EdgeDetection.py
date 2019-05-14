@@ -23,8 +23,17 @@ def detectEdges(image):
     im = differenceOfGaussian(im, 25, 30)
     im = cv2.bilateralFilter(im, 10, 50, 75)
 
-    im = cv2.erode(im,kernell(3),iterations = 1)    
-    im = cv2.dilate(im,kernell(3),iterations = 3)
+    im = cv2.erode(im,kernell(3),iterations = 1)
+
+    im = cv2.dilate(im,kernell(2),iterations = 1)
+    im = cv2.medianBlur(im, 3)
+    im = cv2.medianBlur(im, 3)
+    im = cv2.medianBlur(im, 3)
+    im = cv2.medianBlur(im, 3)
+    
+    im = cv2.dilate(im,kernell(3),iterations = 2)
+    im = cv2.medianBlur(im, 3)
+    im = cv2.medianBlur(im, 3)
 
     return im
 
