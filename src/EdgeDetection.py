@@ -1,9 +1,10 @@
 #! /bin/python3
 
 import ImageLoader as IL
-import cv2
+
 import numpy as np
 import matplotlib.pyplot as plt
+import cv2
 
 def kernell(i):
     return np.ones((i,i),np.uint8)
@@ -74,7 +75,8 @@ def cleanWingImg(img):
     img3 = img3.astype(np.uint8)
     img3 = cv2.dilate(img3, kernell(4), iterations = 3)
     img3 = cv2.erode(img3, kernell(4), iterations = 3)
-    img3 = cv2.medianBlur(img3, 5)
+    img3 = cv2.medianBlur(img3, 25)
+    img3 = cv2.medianBlur(img3, 25)
     return img3
 
 def allPlot(): # try me ~ 7 seconds per image
