@@ -34,7 +34,7 @@ def keepGT4(im):
     return res.astype(np.uint8)
 
 def imageDotsToCentroidList(img):
-    im = cv2.dilate(img,kernell(3),iterations = 3)
+    im = cv2.dilate(img,kernell(5),iterations = 5)
     nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(im, connectivity=8)
     
     return centroids
