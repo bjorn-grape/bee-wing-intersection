@@ -16,6 +16,7 @@ from EdgeDetection import  kernell, cleanWingImg
 import ImageLoader
 import numpy as np
 import cv2
+from os import listdir
 
 def keepGT4(im):
     img = (im > 0) * 1
@@ -53,6 +54,17 @@ def rawImgToCSV(imgPath, csvPath):
     centroidList = np.flip(centroidList,axis= 1)
     np.savetxt(csvPath, centroidList, delimiter=",")
     print("Done.")
+    
+
+def computeAllFolder(folder):
+    if(folder[-1] != "/"):
+        folder += "/"
+    listi = listdir(folder)
+    listi = [elm for elm in listi if ".jpg" in elm or ".png" in elm]
+    for index in range(len(listi)):
+        print("Computing image ",index +1, "/", len(listi), "...")
+        print(listi[index])
+        rawImgToCSV(folder + listi[index], folder + listi[index][:-4] +".csv")
     
 
 '''
