@@ -18,6 +18,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     IMG_FOLDER = args.image_folder
+    if IMG_FOLDER[-1] != '/':
+        IMG_FOLDER += '/'
 
 
 
