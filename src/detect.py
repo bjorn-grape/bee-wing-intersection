@@ -27,7 +27,7 @@ def openPathToNpArray(path):
     return np.array(cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB))
 
 def getAllImages(basePath):
-    trainFiles = listdir(basePath)
+    trainFiles = [image for image in listdir(basePath) if image.endswith('.jpg')]
     storage = {}
     for elm in trainFiles:
         storage[elm] = openPathToNpArray(basePath + elm)
