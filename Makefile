@@ -6,6 +6,7 @@ NOTEBOOK = detect.ipynb
 DATAS_DIR = datas
 ARTIFACTS ?= results
 OUTPUT_NAME ?= abeille_cool
+SUBMISSION = submission-abeille_cool.tar
 
 all: score
 
@@ -31,6 +32,16 @@ html: notebook
 	@echo Rendering HTML page...
 	jupyter nbconvert --to html --execute "${OUTPUT_NAME}.ipynb" --output=index
 
+submission:
+	tar cf ${SUBMISSION} \
+		src/detect.py \
+		Dockerfile \
+		requirements.txt \
+		build.sh \
+		README.md \
+		run.sh
+
 clean:
 	$(RM) ${NOTEBOOK} ${OUTPUT_NAME}.ipynb index.html ${OUTPUT_NAME}.tar
 	$(RM) -r results ${ARTIFACTS}
+	$(RM) $(SUBMISSION)
