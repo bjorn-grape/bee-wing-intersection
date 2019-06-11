@@ -10,7 +10,7 @@ import argparse
 
 
 IMG_FOLDER = None
-CSV_FOLDER = "all_csv"
+CSV_FOLDER = "output"
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
