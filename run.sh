@@ -7,7 +7,7 @@ fi
 
 ./build.sh
 
-DATAS_DIR="$(realpath "$1")"
+DATAS_DIR="$(python -c "import os; print(os.path.realpath('$1'))")"
 
 if [ ! -d output ]; then
     echo "Creating output directory"
