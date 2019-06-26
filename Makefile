@@ -15,7 +15,7 @@ dist:
 
 score:
 	@echo Computing score...
-	python ${SCORE_SCRIPT} ${DETECTION_SCRIPT} ${DATAS_DIR}/test
+	${SCORE_SCRIPT} ${DATAS_DIR}/test
 
 images:
 	@echo Generating images...
