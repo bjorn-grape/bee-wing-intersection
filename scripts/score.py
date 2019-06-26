@@ -28,7 +28,7 @@ class Point:
 
 
 class TestData:
-    script = str(Path(__file__).parent.joinpath('../detect.py'))
+    script = str(Path(__file__).parent.joinpath('../src/detect.py'))
 
     def __init__(self, image, coords):
         self.name = image.stem
@@ -40,7 +40,7 @@ class TestData:
             subprocess.run([
                 TestData.script,
                 self.image,
-                "--directory", result_directory
+                "--output", result_directory
             ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             result_path = Path(result_directory).joinpath(f"{self.name}.csv")
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     data_path = Path(args.data_path)
 
     if not data_path.is_dir():
-        print("Data directory does not exist.")
+        print("Data directory does not exist.", file=sys.stderr)
         sys.exit(1)
 
     images = [i for i in data_path.iterdir() if i.is_file() and i.suffix == '.jpg']

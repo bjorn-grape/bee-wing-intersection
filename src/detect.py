@@ -3,93 +3,71 @@
 
 import cv2
 import os
-from os import listdir
+import sys
 import numpy as np
-import matplotlib.pyplot as plt
+import multiprocessing
+from skimage.morphology import skeletonize
 import argparse
+from pathlib import Path
 
 
-IMG_FOLDER = None
-CSV_FOLDER = "output"
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("image_folder")
-    args = parser.parse_args()
-    
-    IMG_FOLDER = args.image_folder
-    if IMG_FOLDER[-1] != '/':
-        IMG_FOLDER += '/'
+IMGS = None
+CSV_FOLDER = None
 
 
+def main(args):
+    global IMGS, CSV_FOLDER
+    # Handle images folder
+    path_images = Path(args.images)
+    if path_images.is_file() and path_images.suffix == '.jpg':
+        IMGS = [path_images]
+    elif path_images.is_dir():
+        IMGS = [i for i in path_images.iterdir() if i.is_file() and i.suffix == '.jpg']
+    else:
+        print("Data directory does not exist.", file=sys.stderr)
+        sys.exit(1)
 
-def openPathToNpArray(path):
-    return np.array(cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB))
+    # Handle CSV folder
+    CSV_FOLDER = Path(args.output)
+    if not CSV_FOLDER.is_dir():
+        os.makedirs(str(CSV_FOLDER))
 
-def getAllImages(basePath):
-    trainFiles = [image for image in listdir(basePath) if image.endswith('.jpg')]
-    storage = {}
-    for elm in trainFiles:
-        storage[elm] = openPathToNpArray(basePath + elm)
-    return storage
+    # Run veins detection
+    print("Beginning CSV generation...")
+    generateAllCsv(IMGS, 9)
 
-def displayAllImages(allImg): # dictionary of {"imgName" : imgAsNpArray,...}
-    for name in allImg:
-        showNpArrayAsImage(name, allImg[name])
-   
-class ImgStorage: # i.e.: storage =  ImgStorage("../datas/train/")
-    def __init__(self, basePath):
-        self.localMap = getAllImages(basePath)
-        self.localList = [(name, self.localMap[name]) for name in self.localMap]
-        
-    def getImgByIndex(self, index):
-        key,value = self.localList[index]
-        return value
-    
-    def getImgNameByIndex(self, index):
-        key,value = self.localList[index]
-        return key
-    
-    def getImgByName(self, name):
-        return self.localMap[name]
-    
-    def size(self):
-        return len(self.localList)
-    
-    def showIndex(self, index):
-        plt.imshow(self.getImgByIndex(index))        
-        
-    def showName(self, name):
-        plt.imshow(self.getImgByName(name))
-        
-    def getCSVNameForIndex(self, index):
-        return self.getImgNameByIndex(index)[:-4] + ".csv"
-    
+
+def pathToNpArray(path):
+    return np.array(cv2.cvtColor(cv2.imread(str(path)), cv2.COLOR_BGR2RGB))
+
+
 def kernell(i):
-    return np.ones((i,i),np.uint8)
+    return np.ones((i, i), np.uint8)
+
 
 def differenceOfGaussian(img, kernSize1, kernSize2):
     g1 = cv2.blur(img, (kernSize1, kernSize1))
     g2 = cv2.blur(img, (kernSize2, kernSize2))
-    return g1 - g2;
+    return g1 - g2
+
 
 def detectEdges(im):
-    
+
     im = cv2.cvtColor(im, cv2.COLOR_RGB2LAB)
-    l,a,b = cv2.split(im)
+    l, a, b = cv2.split(im)
     im = l
-    
+
     im = differenceOfGaussian(im, 25, 30)
     im = cv2.bilateralFilter(im, 10, 50, 75)
 
-    im = cv2.erode(im,kernell(3),iterations = 1)
-    im = cv2.dilate(im,kernell(2),iterations = 1)
-    
+    im = cv2.erode(im, kernell(3), iterations=1)
+    im = cv2.dilate(im, kernell(2), iterations=1)
+
     for i in range(4):
         im = cv2.medianBlur(im, 3)
-    
+
     im = cv2.dilate(im,kernell(3),iterations = 2)
-    
+
     im = cv2.medianBlur(im, 3)
     im = cv2.medianBlur(im, 3)
 
@@ -139,7 +117,6 @@ def cleanWingImg(img):
     cleaned = postClean(img3)
     return cleaned
 
-from skimage.morphology import skeletonize
 
 # Show only kernel 3x3 where number of pixel != 0 is greater or equal to 4
 def keepGT4(im):
@@ -202,42 +179,41 @@ def generateResultImage(imagePath, csvPath, outputPath):
     if len(coords.shape) != 2:
         coords = array([coords])
     draw_intersections(image, coords)
-    image.save(output_path)
+    image.save(outputPath)
 
-def worker(folder,index, imgStorage, size):
-    if index >= size:
+def worker(folder, index, imgs):
+    if index >= len(imgs):
         return
-    im = imgStorage.getImgByIndex(index)
-    centroids =  imgToCentroidList(im, verbose=False)
-    #centroids = np.flip(centroids, axis=1)
-    csvPath = imgStorage.getCSVNameForIndex(index)
-    #print(csvPath)
-    np.savetxt(folder + csvPath, centroids, delimiter=",")
-    print(index+1, "/", imgStorage.size(), ": ",csvPath ," written.")
-    
-import multiprocessing
+    path = imgs[index]
+    img = pathToNpArray(path)
+    centroids = imgToCentroidList(img, verbose=False)
+    # centroids = np.flip(centroids, axis=1)
+    csvPath = folder.joinpath(path.stem + '.csv')
+    np.savetxt(str(csvPath), centroids, delimiter=",")
+    print(index+1, "/", len(imgs), ": ", csvPath, " written.")
 
-def generateAllCsv(imgStorage, processNumber):
-    folder = CSV_FOLDER
-    if folder[-1] != "/":
-            folder = folder + "/"
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+
+def generateAllCsv(imgs, processNumber):
     currIndex = 0
-    while currIndex < imgStorage.size():
+    while currIndex < len(imgs):
         processList = []
         for i in range(processNumber):
-            p = multiprocessing.Process(target=worker, args=(folder,currIndex + i, imgStorage, imgStorage.size()))
+            p = multiprocessing.Process(target=worker, args=(CSV_FOLDER, currIndex + i, imgs))
             processList.append(p)
             p.start()
 
         for process in processList:
             process.join()
         currIndex += processNumber
-    
+
     print("Done.")
 
-allImg = ImgStorage(IMG_FOLDER)
 
-print("Beginning CSV generation...")
-generateAllCsv(allImg, 9)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("images", help='directory or a single image')
+    parser.add_argument('--output', '-o', type=str, help='Output directory',
+                        default='output')
+    args = parser.parse_args()
+
+    main(args)
