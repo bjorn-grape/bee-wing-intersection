@@ -1,8 +1,8 @@
-DETECTION_SCRIPT = detect.py
+DETECTION_SCRIPT = src/detect.py
 VIEWER_SCRIPT = scripts/viewer.py
 BATCH_RUNNER = scripts/run-batch.sh
 SCORE_SCRIPT = scripts/score.py
-NOTEBOOK = detect.ipynb
+NOTEBOOK = src/detect.ipynb
 DATAS_DIR = datas
 ARTIFACTS ?= results
 OUTPUT_NAME ?= abeille_cool
@@ -25,8 +25,6 @@ images:
 notebook:
 	@echo Generating notebook from script...
 	py2nb ${DETECTION_SCRIPT}
-	@echo Rendering notebook...
-	jupyter nbconvert --to notebook --execute ${NOTEBOOK} --output=${OUTPUT_NAME}
 
 html: notebook
 	@echo Rendering HTML page...
