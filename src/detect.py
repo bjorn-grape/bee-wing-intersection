@@ -6,6 +6,7 @@ import os
 import sys
 import numpy as np
 import multiprocessing
+from skimage.io import imsave
 from skimage.morphology import skeletonize
 import argparse
 from pathlib import Path
@@ -118,20 +119,16 @@ def cleanWingImg(img):
     return cleaned
 
 
-# Show only kernel 3x3 where number of pixel != 0 is greater or equal to 4
-def keepGT4(im):
+# Show only kernel 5x5 where number of pixel != 0 is greater or equal to 8
+def find_points(im):
     img = (im > 0) * 1
     res = np.full(img.shape,0)
     height, width = img.shape
-    for i in range(height):
-        for j in range(width):
-            minx = max(0, i - 1)
-            maxx = min(height - 1, i + 1)
-            miny = max(0, j - 1)
-            maxy = min(width - 1, j + 1)
-            subimg = img[minx:maxx + 1,miny:maxy + 1]
+    for i in range(2, height-2):
+        for j in range(2, width-2):
+            subimg = img[i-2:i + 3, j-2:j + 3]
             ss = np.sum(subimg)
-            res[i,j] = 255 if ss >= 4 else 0
+            res[i,j] = 255 if ss >= 8 else 0
     return res.astype(np.uint8)
 
 # keep centroids of connected components
@@ -150,7 +147,7 @@ def imgToCentroidList(img, verbose=True):
     skell = skeletonize(cleanedImg)
     if(verbose):
         print("keeping centroids...")
-    dotsImg = keepGT4(skell)
+    dotsImg = find_points(skell)
     if(verbose):
         print("Computing centroids...")
     centroidList = imageDotsToCentroidList(dotsImg)
