@@ -10,7 +10,7 @@ from numpy import loadtxt, array
 def draw_intersections(image, intersections):
     draw = ImageDraw.Draw(image)
     for x, y in intersections:
-        draw.ellipse((y - 30, x - 30, y + 30, x + 30), fill=(255, 0, 0))
+        draw.ellipse((y - 10, x - 10, y + 10, x + 10), fill=(255, 0, 0))
 
 
 if __name__ == '__main__':

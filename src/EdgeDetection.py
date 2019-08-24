@@ -1,9 +1,10 @@
 #! /bin/python3
 
 import ImageLoader as IL
-import cv2
+
 import numpy as np
 import matplotlib.pyplot as plt
+import cv2
 
 def kernell(i):
     return np.ones((i,i),np.uint8)
@@ -14,24 +15,23 @@ def differenceOfGaussian(img, kernSize1, kernSize2):
     return g1 - g2;
      
 #
-def detectEdges(image):
-    im = image
-    im = cv2.cvtColor(im, cv2.COLOR_RGB2LAB)
+def detectEdges(im):
     
+    im = cv2.cvtColor(im, cv2.COLOR_RGB2LAB)
     l,a,b = cv2.split(im)
     im = l
+    
     im = differenceOfGaussian(im, 25, 30)
     im = cv2.bilateralFilter(im, 10, 50, 75)
 
     im = cv2.erode(im,kernell(3),iterations = 1)
-
     im = cv2.dilate(im,kernell(2),iterations = 1)
-    im = cv2.medianBlur(im, 3)
-    im = cv2.medianBlur(im, 3)
-    im = cv2.medianBlur(im, 3)
-    im = cv2.medianBlur(im, 3)
+    
+    for i in range(4):
+        im = cv2.medianBlur(im, 3)
     
     im = cv2.dilate(im,kernell(3),iterations = 2)
+    
     im = cv2.medianBlur(im, 3)
     im = cv2.medianBlur(im, 3)
 
@@ -74,7 +74,8 @@ def cleanWingImg(img):
     img3 = img3.astype(np.uint8)
     img3 = cv2.dilate(img3, kernell(4), iterations = 3)
     img3 = cv2.erode(img3, kernell(4), iterations = 3)
-    img3 = cv2.medianBlur(img3, 5)
+    img3 = cv2.medianBlur(img3, 25)
+    img3 = cv2.medianBlur(img3, 25)
     return img3
 
 def allPlot(): # try me ~ 7 seconds per image
